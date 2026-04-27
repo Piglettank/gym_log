@@ -1,0 +1,336 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
+
+import '../data/log_repository.dart';
+import '../models/exercise_definition.dart';
+import '../models/log_field.dart';
+import '../models/workout_log_entry.dart';
+import '../models/workout_session.dart';
+
+class LogExerciseScreen extends StatefulWidget {
+  final ExerciseDefinition definition;
+  final LogRepository repository;
+  final WorkoutSession session;
+  final WorkoutLogEntry? existingEntry;
+
+  const LogExerciseScreen({
+    super.key,
+    required this.definition,
+    required this.repository,
+    required this.session,
+    this.existingEntry,
+  });
+
+  @override
+  State<LogExerciseScreen> createState() => _LogExerciseScreenState();
+}
+
+class _LogExerciseScreenState extends State<LogExerciseScreen> {
+  static const _uuid = Uuid();
+  static const _touchSize = 68.0;
+  static const _holdArmMs = 320;
+
+  final Map<String, double> _values = {};
+
+  Timer? _holdArmTimer;
+  Timer? _holdTickTimer;
+  LogField? _holdField;
+  int _holdSign = 1;
+  bool _holdPointerDown = false;
+  bool _holdRepeating = false;
+  int _holdTickIndex = 0;
+  String? _pressedStepperKey;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existingEntry;
+    for (final f in widget.definition.fields) {
+      final fromLog = existing?.values[f.id];
+      _values[f.id] = fromLog ?? f.initial ?? _defaultInitial(f);
+    }
+  }
+
+  @override
+  void dispose() {
+    _disarmHoldRepeat();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          widget.existingEntry != null
+              ? 'Edit ${widget.definition.emoji} ${widget.definition.name}'
+              : '${widget.definition.emoji} ${widget.definition.name}',
+          style: theme.textTheme.titleSmall,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        children: [
+          for (final field in widget.definition.fields) ...[
+            Text(
+              field.unit != null ? '${field.label} (${field.unit})' : field.label,
+              style: theme.textTheme.labelLarge,
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _holdStepperButton(theme, field, -1, Icons.remove),
+                Expanded(
+                  child: Text(
+                    _formatValue(field, _values[field.id]!),
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ),
+                _holdStepperButton(theme, field, 1, Icons.add),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
+          FilledButton(
+            onPressed: _save,
+            child: Text(
+              widget.existingEntry != null ? 'Update log' : 'Save log',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _defaultInitial(LogField f) {
+    switch (f.id) {
+      case 'sets':
+      case 'reps':
+        return 1;
+      case 'durationSec':
+        return 30;
+      case 'durationMin':
+        return 10;
+      case 'distanceKm':
+        return 1;
+      default:
+        return 0;
+    }
+  }
+
+  double _stepFor(LogField f) {
+    if (f.step != null) return f.step!;
+    if (f.decimals >= 2) return 0.1;
+    if (f.decimals == 1) return 0.5;
+    return 1;
+  }
+
+  double _minFor(LogField f) {
+    if (f.id == 'weightKg') return 0;
+    if (f.id == 'sets' || f.id == 'reps') return 1;
+    return 0;
+  }
+
+  double _roundToFieldDecimals(double v, LogField f) {
+    if (f.decimals <= 0) return v.roundToDouble();
+    final m = math.pow(10, f.decimals).toDouble();
+    return (v * m).round() / m;
+  }
+
+  void _nudge(LogField field, int sign) {
+    final step = _stepFor(field);
+    final min = _minFor(field);
+    final before = _values[field.id]!;
+    final raw = before + sign * step;
+    final rounded = _roundToFieldDecimals(raw, field);
+    final next = rounded.clamp(min, 99999);
+    if (next == before) {
+      HapticFeedback.heavyImpact();
+      return;
+    }
+    HapticFeedback.lightImpact();
+    setState(() {
+      _values[field.id] = next.toDouble();
+    });
+  }
+
+  Widget _holdStepperButton(ThemeData theme, LogField field, int sign, IconData icon) {
+    final stepperKey = '${field.id}:$sign';
+    final pressed = _pressedStepperKey == stepperKey;
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (_) => _onStepperPointerDown(field, sign),
+      onPointerUp: (_) => _onStepperPointerUp(field, sign),
+      onPointerCancel: (_) => _onStepperPointerUp(field, sign),
+      child: SizedBox(
+        width: _touchSize,
+        height: _touchSize,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 90),
+          curve: Curves.easeOut,
+          width: _touchSize,
+          height: _touchSize,
+          decoration: BoxDecoration(
+            color: pressed
+                ? theme.colorScheme.onSurface.withValues(alpha: 0.12)
+                : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: AnimatedScale(
+            scale: pressed ? 0.88 : 1,
+            duration: const Duration(milliseconds: 90),
+            curve: Curves.easeOut,
+            child: AnimatedOpacity(
+              opacity: pressed ? 0.55 : 1,
+              duration: const Duration(milliseconds: 90),
+              curve: Curves.easeOut,
+              child: Center(
+                child: Icon(
+                  icon,
+                  color: theme.colorScheme.onSurface,
+                  size: 30,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onStepperPointerDown(LogField field, int sign) {
+    _disarmHoldRepeat();
+    HapticFeedback.selectionClick();
+    setState(() {
+      _pressedStepperKey = '${field.id}:$sign';
+    });
+    _holdPointerDown = true;
+    _holdRepeating = false;
+    _holdField = field;
+    _holdSign = sign;
+    _holdTickIndex = 0;
+    _holdArmTimer = Timer(const Duration(milliseconds: _holdArmMs), () {
+      if (!_holdPointerDown || !mounted) return;
+      if (_holdField != field || _holdSign != sign) return;
+      _holdRepeating = true;
+      _holdTickIndex = 0;
+      _scheduleHoldTick();
+    });
+  }
+
+  void _onStepperPointerUp(LogField field, int sign) {
+    _holdArmTimer?.cancel();
+    _holdArmTimer = null;
+    _holdTickTimer?.cancel();
+    _holdTickTimer = null;
+    final wasQuickTap = !_holdRepeating;
+    _holdPointerDown = false;
+    _holdRepeating = false;
+    _holdField = null;
+    setState(() {
+      _pressedStepperKey = null;
+    });
+    if (wasQuickTap) {
+      _nudge(field, sign);
+    }
+  }
+
+  void _scheduleHoldTick() {
+    _holdTickTimer?.cancel();
+    if (!_holdPointerDown || !_holdRepeating || _holdField == null) return;
+    _nudge(_holdField!, _holdSign);
+    _holdTickIndex++;
+    final delayMs = _holdRepeatDelayMs(_holdTickIndex);
+    _holdTickTimer = Timer(Duration(milliseconds: delayMs), () {
+      if (!mounted) return;
+      _scheduleHoldTick();
+    });
+  }
+
+  int _holdRepeatDelayMs(int tickIndex) {
+    const startMs = 200;
+    const minMs = 20;
+    const acceleration = 12;
+    return math.max(minMs, startMs - tickIndex * acceleration);
+  }
+
+  void _disarmHoldRepeat() {
+    _holdArmTimer?.cancel();
+    _holdArmTimer = null;
+    _holdTickTimer?.cancel();
+    _holdTickTimer = null;
+    _holdPointerDown = false;
+    _holdRepeating = false;
+    _holdField = null;
+    _pressedStepperKey = null;
+  }
+
+  String _formatValue(LogField field, double v) {
+    if (field.decimals <= 0) return v.round().toString();
+    return v.toStringAsFixed(field.decimals);
+  }
+
+  bool _isValueValid(LogField field, double v) {
+    switch (field.id) {
+      case 'weightKg':
+        return v >= 0;
+      case 'sets':
+      case 'reps':
+        return v >= 1;
+      case 'distanceKm':
+      case 'durationMin':
+      case 'durationSec':
+        return v > 0;
+      default:
+        return v > 0;
+    }
+  }
+
+  Future<void> _save() async {
+    for (final field in widget.definition.fields) {
+      final v = _values[field.id]!;
+      if (!_isValueValid(field, v)) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Set a valid ${field.label}')));
+        return;
+      }
+    }
+
+    await widget.repository.ensureSession(widget.session);
+    final values = Map<String, double>.from(_values);
+    final existing = widget.existingEntry;
+    if (existing != null) {
+      await widget.repository.updateEntry(
+        WorkoutLogEntry(
+          id: existing.id,
+          sessionId: existing.sessionId,
+          exerciseId: existing.exerciseId,
+          loggedAt: DateTime.now().toUtc(),
+          values: values,
+        ),
+      );
+    } else {
+      await widget.repository.addEntry(
+        WorkoutLogEntry(
+          id: _uuid.v4(),
+          sessionId: widget.session.id,
+          exerciseId: widget.definition.id,
+          loggedAt: DateTime.now().toUtc(),
+          values: values,
+        ),
+      );
+    }
+    if (!mounted) return;
+    Navigator.of(context).pop(true);
+  }
+}
