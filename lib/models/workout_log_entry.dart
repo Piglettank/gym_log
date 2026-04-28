@@ -1,21 +1,18 @@
 class WorkoutLogEntry {
   WorkoutLogEntry({
     required this.id,
-    required this.sessionId,
     required this.exerciseId,
     required this.loggedAt,
     required this.values,
   });
 
   final String id;
-  final String sessionId;
   final String exerciseId;
   final DateTime loggedAt;
   final Map<String, double> values;
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'sessionId': sessionId,
         'exerciseId': exerciseId,
         'loggedAt': loggedAt.toIso8601String(),
         'values': values.map((k, v) => MapEntry(k, v)),
@@ -34,7 +31,6 @@ class WorkoutLogEntry {
     }
     return WorkoutLogEntry(
       id: json['id'] as String,
-      sessionId: json['sessionId'] as String? ?? '',
       exerciseId: json['exerciseId'] as String,
       loggedAt: DateTime.parse(json['loggedAt'] as String),
       values: values,

@@ -9,19 +9,17 @@ import '../data/log_repository.dart';
 import '../models/exercise_definition.dart';
 import '../models/log_field.dart';
 import '../models/workout_log_entry.dart';
-import '../models/workout_session.dart';
+import '../util/log_entry_format.dart';
 
 class LogExerciseScreen extends StatefulWidget {
   final ExerciseDefinition definition;
   final LogRepository repository;
-  final WorkoutSession session;
   final WorkoutLogEntry? existingEntry;
 
   const LogExerciseScreen({
     super.key,
     required this.definition,
     required this.repository,
-    required this.session,
     this.existingEntry,
   });
 
@@ -44,6 +42,7 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
   bool _holdRepeating = false;
   int _holdTickIndex = 0;
   String? _pressedStepperKey;
+  WorkoutLogEntry? _personalBestEntry;
 
   @override
   void initState() {
@@ -53,6 +52,18 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
       final fromLog = existing?.values[f.id];
       _values[f.id] = fromLog ?? f.initial ?? _defaultInitial(f);
     }
+    _loadPersonalBest();
+  }
+
+  Future<void> _loadPersonalBest() async {
+    final all = await widget.repository.loadEntriesForExercise(widget.definition.id);
+    if (!mounted) {
+      return;
+    }
+    final best = _entryWithBestPrimary(all, widget.definition);
+    setState(() {
+      _personalBestEntry = best;
+    });
   }
 
   @override
@@ -64,49 +75,130 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final heading = widget.existingEntry != null
+        ? 'Edit ${widget.definition.name}'
+        : widget.definition.name;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.existingEntry != null
-              ? 'Edit ${widget.definition.emoji} ${widget.definition.name}'
-              : '${widget.definition.emoji} ${widget.definition.name}',
-          style: theme.textTheme.titleSmall,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(8, 22, 8, 28),
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: Text(
+                heading,
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (_personalBestEntry != null) ...[
+              const SizedBox(height: 8),
+              _personalBestLabel(theme),
+              const SizedBox(height: 4),
+              Text(
+                formatLogValuesSummary(_personalBestEntry!.values),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Divider(height: 1, color: theme.colorScheme.outlineVariant),
+            const SizedBox(height: 14),
+            for (final field in widget.definition.fields) ...[
+              SizedBox(
+                width: double.infinity,
+                child: Text(
+                  field.unit != null
+                      ? '${field.label} (${field.unit})'
+                      : field.label,
+                  style: theme.textTheme.labelLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  _holdStepperButton(theme, field, -1, Icons.remove),
+                  Expanded(
+                    child: Text(
+                      _formatValue(field, _values[field.id]!),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge,
+                    ),
+                  ),
+                  _holdStepperButton(theme, field, 1, Icons.add),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+            FilledButton(
+              onPressed: _save,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(56),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                textStyle: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              child: Text(
+                widget.existingEntry != null ? 'Update log' : 'Save log',
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        children: [
-          for (final field in widget.definition.fields) ...[
-            Text(
-              field.unit != null ? '${field.label} (${field.unit})' : field.label,
-              style: theme.textTheme.labelLarge,
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                _holdStepperButton(theme, field, -1, Icons.remove),
-                Expanded(
-                  child: Text(
-                    _formatValue(field, _values[field.id]!),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleLarge,
-                  ),
-                ),
-                _holdStepperButton(theme, field, 1, Icons.add),
-              ],
-            ),
-            const SizedBox(height: 10),
-          ],
-          FilledButton(
-            onPressed: _save,
-            child: Text(
-              widget.existingEntry != null ? 'Update log' : 'Save log',
-            ),
-          ),
-        ],
-      ),
+    );
+  }
+
+  /// Same primary field order as [ExerciseProgressScreen] trend chart.
+  LogField? _primaryFieldForExercise(ExerciseDefinition ex) {
+    const priority = ['weightKg', 'distanceKm', 'durationSec', 'durationMin', 'reps', 'sets'];
+    for (final id in priority) {
+      for (final f in ex.fields) {
+        if (f.id == id) return f;
+      }
+    }
+    return ex.fields.isNotEmpty ? ex.fields.first : null;
+  }
+
+  /// Best effort on the primary metric; ties go to the most recent log.
+  WorkoutLogEntry? _entryWithBestPrimary(
+    List<WorkoutLogEntry> all,
+    ExerciseDefinition ex,
+  ) {
+    final field = _primaryFieldForExercise(ex);
+    if (field == null || all.isEmpty) return null;
+    WorkoutLogEntry? best;
+    double? bestVal;
+    for (final e in all) {
+      final v = e.values[field.id];
+      if (v == null) continue;
+      if (bestVal == null || v > bestVal) {
+        bestVal = v;
+        best = e;
+      } else if (v == bestVal && best != null) {
+        if (e.loggedAt.isAfter(best.loggedAt)) {
+          best = e;
+        }
+      }
+    }
+    return best;
+  }
+
+  Widget _personalBestLabel(ThemeData theme) {
+    final style = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.primary,
+      fontWeight: FontWeight.w600,
+    );
+    return Text(
+      'Personal best',
+      textAlign: TextAlign.center,
+      style: style,
     );
   }
 
@@ -306,16 +398,14 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
       }
     }
 
-    await widget.repository.ensureSession(widget.session);
     final values = Map<String, double>.from(_values);
     final existing = widget.existingEntry;
     if (existing != null) {
       await widget.repository.updateEntry(
         WorkoutLogEntry(
           id: existing.id,
-          sessionId: existing.sessionId,
           exerciseId: existing.exerciseId,
-          loggedAt: DateTime.now().toUtc(),
+          loggedAt: existing.loggedAt,
           values: values,
         ),
       );
@@ -323,7 +413,6 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
       await widget.repository.addEntry(
         WorkoutLogEntry(
           id: _uuid.v4(),
-          sessionId: widget.session.id,
           exerciseId: widget.definition.id,
           loggedAt: DateTime.now().toUtc(),
           values: values,
@@ -331,6 +420,49 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
       );
     }
     if (!mounted) return;
-    Navigator.of(context).pop(true);
+    if (existing == null) {
+      final theme = Theme.of(context);
+      final overlay = Overlay.of(context, rootOverlay: true);
+      late final OverlayEntry entry;
+      entry = OverlayEntry(
+        builder: (context) {
+          return Positioned.fill(
+            child: IgnorePointer(
+              child: Center(
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.42),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Text(
+                    'Exercise logged!',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.88),
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      overlay.insert(entry);
+      Future<void>.delayed(const Duration(seconds: 2), entry.remove);
+    } else {
+      Navigator.of(context).pop(false);
+    }
   }
 }

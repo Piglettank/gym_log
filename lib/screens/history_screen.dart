@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:wear_plus/wear_plus.dart';
 
 import '../data/log_repository.dart';
-import '../models/workout_session.dart';
+import '../models/workout_log_entry.dart';
+import '../util/day_log.dart';
 import '../util/session_format.dart';
-import 'session_detail_screen.dart';
+import 'history_day_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   final LogRepository repository;
@@ -19,8 +20,8 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  List<WorkoutSession> _sessions = [];
-  Map<String, int> _entryCounts = {};
+  List<WorkoutLogEntry> _entries = [];
+  List<DateTime> _days = [];
   bool _loading = true;
 
   @override
@@ -58,105 +59,101 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _active(BuildContext context, WearShape shape) {
     final horizontal = shape == WearShape.round ? 20.0 : 12.0;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Log history'),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _sessions.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: horizontal),
-                    child: Text(
-                      'No sessions yet.\nStart a new session from the home screen.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
+      body: SafeArea(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _days.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: horizontal),
+                      child: Text(
+                        'No logs yet.\nAdd exercises from the home screen.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
                     ),
-                  ),
-                )
-              : ListView.builder(
-                  padding: EdgeInsets.fromLTRB(horizontal, 8, horizontal, 24),
-                  itemCount: _sessions.length,
-                  itemBuilder: (context, index) {
-                    final session = _sessions[index];
-                    final count = _entryCounts[session.id] ?? 0;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: InkWell(
-                        onTap: () => _openSession(session),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 14,
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.fromLTRB(horizontal, 8, horizontal, 24),
+                    itemCount: 1 + _days.length,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              'Log history',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_rounded,
-                                size: 22,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      formatSessionStartLocal(
-                                        session.startedAt,
-                                      ),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall,
-                                    ),
-                                    Text(
-                                      '$count ${count == 1 ? 'log' : 'logs'}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall,
-                                    ),
-                                  ],
+                        );
+                      }
+                      final day = _days[index - 1];
+                      final label = formatLogHistoryDayHeader(day);
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: InkWell(
+                          onTap: () => _openDay(day),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 22,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
-                              ),
-                              Icon(
-                                Icons.chevron_right_rounded,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                            ],
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    label,
+                                    style: Theme.of(context).textTheme.titleSmall,
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+      ),
     );
   }
 
   Future<void> _load() async {
-    final sessions = await widget.repository.loadSessions();
-    final allEntries = await widget.repository.loadAllEntries();
-    final counts = <String, int>{};
-    for (final e in allEntries) {
-      counts[e.sessionId] = (counts[e.sessionId] ?? 0) + 1;
+    final all = await widget.repository.loadAllEntries();
+    if (!mounted) {
+      return;
     }
-    if (!mounted) return;
     setState(() {
-      _sessions = sessions;
-      _entryCounts = counts;
+      _entries = all;
+      _days = distinctLocalDaysNewestFirst(all);
       _loading = false;
     });
   }
 
-  Future<void> _openSession(WorkoutSession session) async {
+  Future<void> _openDay(DateTime localDay) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (context) => SessionDetailScreen(
+        builder: (context) => HistoryDayScreen(
           repository: widget.repository,
-          session: session,
+          localDay: localDay,
         ),
       ),
     );

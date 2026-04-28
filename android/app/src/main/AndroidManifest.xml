@@ -3,7 +3,7 @@
     <uses-feature android:name="android.hardware.type.watch" android:required="false" />
 
     <application
-        android:label="gym_log"
+        android:label="Gym Log"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

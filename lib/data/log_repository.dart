@@ -1,29 +1,21 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 
 import '../models/workout_log_entry.dart';
-import '../models/workout_session.dart';
 
 class _Storage {
-  _Storage({required this.sessions, required this.entries});
+  _Storage({required this.entries});
 
-  final List<WorkoutSession> sessions;
   final List<WorkoutLogEntry> entries;
 
   Map<String, dynamic> toJson() => {
-        'sessions': sessions.map((s) => s.toJson()).toList(),
         'entries': entries.map((e) => e.toJson()).toList(),
       };
 
   factory _Storage.fromJson(Map<String, dynamic> json) {
-    final sessionList = json['sessions'] as List<dynamic>? ?? [];
     final entryList = json['entries'] as List<dynamic>? ?? [];
     return _Storage(
-      sessions: sessionList
-          .map((e) => WorkoutSession.fromJson(e as Map<String, dynamic>))
-          .toList(),
       entries: entryList
           .map((e) => WorkoutLogEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -32,156 +24,98 @@ class _Storage {
 }
 
 class LogRepository {
-  static const _legacyKey = 'workout_logs_v1';
-  static const _storageKey = 'gym_log_storage_v2';
-  static const _uuid = Uuid();
+  static const _storageKey = 'gym_log_storage';
 
-  Future<_Storage> _readStorage() async {
+  Future<List<WorkoutLogEntry>> _readEntries() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_storageKey);
-    if (raw != null && raw.isNotEmpty) {
-      return _Storage.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    if (raw == null || raw.isEmpty) {
+      return [];
     }
-    return _migrateFromLegacy(prefs);
+    return _Storage.fromJson(
+      jsonDecode(raw) as Map<String, dynamic>,
+    ).entries;
   }
 
-  Future<_Storage> _migrateFromLegacy(SharedPreferences prefs) async {
-    final legacy = prefs.getString(_legacyKey);
-    if (legacy == null || legacy.isEmpty) {
-      return _Storage(sessions: [], entries: []);
-    }
-    final list = jsonDecode(legacy) as List<dynamic>;
-    final entries = list
-        .map((e) => WorkoutLogEntry.fromJson(e as Map<String, dynamic>))
-        .toList();
-    final session = WorkoutSession(
-      id: _uuid.v4(),
-      startedAt: entries.isEmpty
-          ? DateTime.now().toUtc()
-          : entries
-              .map((e) => e.loggedAt)
-              .reduce((a, b) => a.isBefore(b) ? a : b),
-    );
-    final migrated = entries
-        .map(
-          (e) => WorkoutLogEntry(
-            id: e.id,
-            sessionId: e.sessionId.isEmpty ? session.id : e.sessionId,
-            exerciseId: e.exerciseId,
-            loggedAt: e.loggedAt,
-            values: e.values,
-          ),
-        )
-        .toList();
-    final storage = _Storage(sessions: [session], entries: migrated);
-    await _writeStorage(prefs, storage);
-    await prefs.remove(_legacyKey);
-    return storage;
-  }
-
-  Future<void> _writeStorage(SharedPreferences prefs, _Storage storage) async {
-    await prefs.setString(_storageKey, jsonEncode(storage.toJson()));
-  }
-
-  Future<void> _save(_Storage storage) async {
+  Future<void> _saveEntries(List<WorkoutLogEntry> entries) async {
     final prefs = await SharedPreferences.getInstance();
-    await _writeStorage(prefs, storage);
-  }
-
-  /// Newest session first (for log history).
-  Future<List<WorkoutSession>> loadSessions() async {
-    final s = await _readStorage();
-    final copy = List<WorkoutSession>.from(s.sessions);
-    copy.sort((a, b) => b.startedAt.compareTo(a.startedAt));
-    return List.unmodifiable(copy);
+    await prefs.setString(
+      _storageKey,
+      jsonEncode(_Storage(entries: entries).toJson()),
+    );
   }
 
   Future<List<WorkoutLogEntry>> loadAllEntries() async {
-    final s = await _readStorage();
-    return List.unmodifiable(s.entries);
-  }
-
-  Future<List<WorkoutLogEntry>> loadEntriesForSession(String sessionId) async {
-    final s = await _readStorage();
-    final list =
-        s.entries.where((e) => e.sessionId == sessionId).toList();
+    final list = List<WorkoutLogEntry>.from(await _readEntries());
     list.sort((a, b) => b.loggedAt.compareTo(a.loggedAt));
     return List.unmodifiable(list);
   }
 
-  /// Newest log first (same as session log history).
-  Future<List<WorkoutLogEntry>> loadEntriesForExercise(String exerciseId) async {
-    final s = await _readStorage();
-    final list =
-        s.entries.where((e) => e.exerciseId == exerciseId).toList();
-    list.sort((a, b) => b.loggedAt.compareTo(a.loggedAt));
-    return List.unmodifiable(list);
-  }
-
-  Future<void> addSession(WorkoutSession session) async {
-    final s = await _readStorage();
-    s.sessions.add(session);
-    await _save(s);
-  }
-
-  /// Persists the session if it is not already stored (e.g. first log of a new workout).
-  Future<void> ensureSession(WorkoutSession session) async {
-    final s = await _readStorage();
-    if (s.sessions.any((x) => x.id == session.id)) return;
-    s.sessions.add(session);
-    await _save(s);
-  }
-
-  /// At most one log per exercise per session: replaces any existing row before insert.
-  Future<void> addEntry(WorkoutLogEntry entry) async {
-    final s = await _readStorage();
-    s.entries.removeWhere(
-      (e) =>
-          e.sessionId == entry.sessionId &&
-          e.exerciseId == entry.exerciseId,
-    );
-    s.entries.insert(0, entry);
-    await _save(s);
-  }
-
-  /// Prefer the newest log if legacy data had duplicates.
-  Future<WorkoutLogEntry?> findEntryForSessionExercise(
-    String sessionId,
-    String exerciseId,
+  /// Entries on this local calendar day (year, month, day only).
+  Future<List<WorkoutLogEntry>> loadEntriesForLocalDay(
+    DateTime localDay,
   ) async {
-    final s = await _readStorage();
-    WorkoutLogEntry? best;
-    for (final e in s.entries) {
-      if (e.sessionId != sessionId || e.exerciseId != exerciseId) continue;
-      if (best == null || e.loggedAt.isAfter(best.loggedAt)) {
-        best = e;
+    final all = await _readEntries();
+    final y = localDay.year;
+    final mo = localDay.month;
+    final d = localDay.day;
+    final out = <WorkoutLogEntry>[];
+    for (final e in all) {
+      final l = e.loggedAt.toLocal();
+      if (l.year == y && l.month == mo && l.day == d) {
+        out.add(e);
       }
     }
-    return best;
+    out.sort((a, b) => b.loggedAt.compareTo(a.loggedAt));
+    return List.unmodifiable(out);
+  }
+
+  /// Newest first.
+  Future<List<WorkoutLogEntry>> loadEntriesForExercise(
+    String exerciseId,
+  ) async {
+    final s = await _readEntries();
+    final list = s.where((e) => e.exerciseId == exerciseId).toList();
+    list.sort((a, b) => b.loggedAt.compareTo(a.loggedAt));
+    return List.unmodifiable(list);
+  }
+
+  Future<WorkoutLogEntry?> lastLogForExerciseExcluding(
+    String exerciseId, {
+    String? excludeEntryId,
+  }) async {
+    final list = await loadEntriesForExercise(exerciseId);
+    for (final e in list) {
+      if (excludeEntryId != null && e.id == excludeEntryId) {
+        continue;
+      }
+      return e;
+    }
+    return null;
+  }
+
+  Future<void> addEntry(WorkoutLogEntry entry) async {
+    final s = List<WorkoutLogEntry>.from(await _readEntries());
+    s.removeWhere((e) => e.id == entry.id);
+    s.insert(0, entry);
+    await _saveEntries(s);
+  }
+
+  Future<WorkoutLogEntry?> findEntryById(String id) async {
+    for (final e in await _readEntries()) {
+      if (e.id == id) return e;
+    }
+    return null;
   }
 
   Future<void> updateEntry(WorkoutLogEntry entry) async {
-    final s = await _readStorage();
-    s.entries.removeWhere(
-      (e) =>
-          e.sessionId == entry.sessionId &&
-          e.exerciseId == entry.exerciseId &&
-          e.id != entry.id,
-    );
-    final i = s.entries.indexWhere((e) => e.id == entry.id);
+    final s = List<WorkoutLogEntry>.from(await _readEntries());
+    final i = s.indexWhere((e) => e.id == entry.id);
     if (i < 0) {
-      s.entries.insert(0, entry);
+      s.insert(0, entry);
     } else {
-      s.entries[i] = entry;
+      s[i] = entry;
     }
-    await _save(s);
-  }
-
-  Future<WorkoutSession?> sessionById(String id) async {
-    final s = await _readStorage();
-    for (final session in s.sessions) {
-      if (session.id == id) return session;
-    }
-    return null;
+    await _saveEntries(s);
   }
 }

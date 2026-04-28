@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'data/log_repository.dart';
 import 'screens/session_hub_screen.dart';
 import 'services/export_service.dart';
+import 'widgets/wear_screen_preview.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +29,11 @@ class GymLogApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
+      builder: (context, child) {
+        return WearScreenPreview(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: SessionHubScreen(
         repository: _repository,
         exportService: _exportService,

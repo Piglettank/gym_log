@@ -10,31 +10,16 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(
-        id: 'weightKg',
-        label: 'Weight',
-        unit: 'kg',
-        decimals: 1,
-        step: 2.5,
-        initial: 0,
-      ),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
     ],
   ),
   ExerciseDefinition(
-    id: 'tricep_pushdown',
-    name: 'Tricep pushdown',
+    id: 'push_ups',
+    name: 'Push-ups',
     emoji: '💪',
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(
-        id: 'weightKg',
-        label: 'Weight',
-        unit: 'kg',
-        decimals: 1,
-        step: 2.5,
-        initial: 0,
-      ),
     ],
   ),
   ExerciseDefinition(
@@ -44,14 +29,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(
-        id: 'weightKg',
-        label: 'Weight',
-        unit: 'kg',
-        decimals: 1,
-        step: 2.5,
-        initial: 0,
-      ),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
     ],
   ),
   ExerciseDefinition(
@@ -61,14 +39,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(
-        id: 'weightKg',
-        label: 'Weight',
-        unit: 'kg',
-        decimals: 1,
-        step: 2.5,
-        initial: 0,
-      ),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
     ],
   ),
   ExerciseDefinition(
@@ -78,31 +49,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(
-        id: 'weightKg',
-        label: 'Weight',
-        unit: 'kg',
-        decimals: 1,
-        step: 2.5,
-        initial: 0,
-      ),
-    ],
-  ),
-  ExerciseDefinition(
-    id: 'deadlift',
-    name: 'Deadlift',
-    emoji: '🏋️‍♂️',
-    fields: [
-      LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
-      LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(
-        id: 'weightKg',
-        label: 'Weight',
-        unit: 'kg',
-        decimals: 1,
-        step: 2.5,
-        initial: 0,
-      ),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
     ],
   ),
   ExerciseDefinition(
@@ -110,45 +57,18 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     name: 'Running',
     emoji: '🏃',
     fields: [
-      LogField(
-        id: 'distanceKm',
-        label: 'Distance',
-        unit: 'km',
-        decimals: 2,
-        step: 0.1,
-        initial: 1,
-      ),
-      LogField(
-        id: 'durationMin',
-        label: 'Time',
-        unit: 'min',
-        decimals: 0,
-        step: 1,
-        initial: 10,
-      ),
+      LogField(id: 'distanceKm', label: 'Distance', unit: 'km', decimals: 2, step: 0.1, initial: 1),
+      LogField(id: 'durationMin', label: 'Time', unit: 'min', decimals: 0, step: 1, initial: 10),
     ],
   ),
   ExerciseDefinition(
-    id: 'cycling',
-    name: 'Cycling',
-    emoji: '🚴',
+    id: 'challenge',
+    name: 'Challenge',
+    emoji: '👥',
     fields: [
-      LogField(
-        id: 'distanceKm',
-        label: 'Distance',
-        unit: 'km',
-        decimals: 2,
-        step: 0.1,
-        initial: 5,
-      ),
-      LogField(
-        id: 'durationMin',
-        label: 'Time',
-        unit: 'min',
-        decimals: 0,
-        step: 1,
-        initial: 20,
-      ),
+      LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
+      LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
     ],
   ),
   ExerciseDefinition(
@@ -156,14 +76,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     name: 'Plank',
     emoji: '⏱️',
     fields: [
-      LogField(
-        id: 'durationSec',
-        label: 'Hold',
-        unit: 'sec',
-        decimals: 0,
-        step: 5,
-        initial: 30,
-      ),
+      LogField(id: 'durationSec', label: 'Hold', unit: 'sec', decimals: 0, step: 5, initial: 30),
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
     ],
   ),
@@ -172,14 +85,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     name: 'Side plank',
     emoji: '🤸',
     fields: [
-      LogField(
-        id: 'durationSec',
-        label: 'Hold',
-        unit: 'sec',
-        decimals: 0,
-        step: 5,
-        initial: 30,
-      ),
+      LogField(id: 'durationSec', label: 'Hold', unit: 'sec', decimals: 0, step: 5, initial: 30),
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
     ],
   ),
@@ -190,14 +96,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(
-        id: 'weightKg',
-        label: 'Weight',
-        unit: 'kg',
-        decimals: 1,
-        step: 2.5,
-        initial: 0,
-      ),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
     ],
   ),
   ExerciseDefinition(
@@ -207,14 +106,6 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(
-        id: 'weightKg',
-        label: 'Added',
-        unit: 'kg',
-        decimals: 1,
-        step: 2.5,
-        initial: 0,
-      ),
     ],
   ),
   ExerciseDefinition(
@@ -224,14 +115,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(
-        id: 'weightKg',
-        label: 'Added',
-        unit: 'kg',
-        decimals: 1,
-        step: 2.5,
-        initial: 0,
-      ),
+      LogField(id: 'weightKg', label: 'Added', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
     ],
   ),
 ];
@@ -241,4 +125,20 @@ ExerciseDefinition? exerciseById(String id) {
     if (e.id == id) return e;
   }
   return null;
+}
+
+final _catalogIndexById = {
+  for (var i = 0; i < kExerciseCatalog.length; i++) kExerciseCatalog[i].id: i,
+};
+
+/// Highest total log count first; ties keep default catalog order.
+List<ExerciseDefinition> exercisesSortedByLogCountDesc(Map<String, int> countsByExerciseId) {
+  final list = List<ExerciseDefinition>.from(kExerciseCatalog);
+  list.sort((a, b) {
+    final ca = countsByExerciseId[a.id] ?? 0;
+    final cb = countsByExerciseId[b.id] ?? 0;
+    if (cb != ca) return cb.compareTo(ca);
+    return _catalogIndexById[a.id]!.compareTo(_catalogIndexById[b.id]!);
+  });
+  return list;
 }

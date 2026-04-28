@@ -61,23 +61,41 @@ class _ExerciseProgressScreenState extends State<ExerciseProgressScreen> {
     final horizontal = shape == WearShape.round ? 20.0 : 12.0;
     final ex = widget.exercise;
     final trendBanner = _buildTrendBanner(context);
+    final titleStyle = Theme.of(
+      context,
+    ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600);
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${ex.emoji} ${ex.name}', maxLines: 1, overflow: TextOverflow.ellipsis),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _entries.isEmpty
-          ? Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontal),
-                child: const Text('No logs for this exercise yet.', textAlign: TextAlign.center),
+      body: SafeArea(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _entries.isEmpty
+            ? Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontal),
+                  child: const Text('No logs for this exercise yet.', textAlign: TextAlign.center),
+                ),
+              )
+            : ListView(
+                padding: EdgeInsets.fromLTRB(horizontal, 4, horizontal, 24),
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Text(
+                        ex.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: titleStyle,
+                      ),
+                    ),
+                  ),
+                  ?trendBanner,
+                  ..._entries.map((e) => _entryCard(context, e)),
+                ],
               ),
-            )
-          : ListView(
-              padding: EdgeInsets.fromLTRB(horizontal, 8, horizontal, 24),
-              children: [?trendBanner, ..._entries.map((e) => _entryCard(context, e))],
-            ),
+      ),
     );
   }
 
@@ -96,11 +114,16 @@ class _ExerciseProgressScreenState extends State<ExerciseProgressScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text('Trend', style: theme.textTheme.labelLarge?.copyWith(color: chartColor)),
+            Text(
+              'Trend',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelLarge?.copyWith(color: chartColor),
+            ),
             Text(
               field.unit != null ? '${field.label} (${field.unit})' : field.label,
+              textAlign: TextAlign.center,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

@@ -1,24 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 import 'package:wear_plus/wear_plus.dart';
 
 import '../data/log_repository.dart';
-import '../models/workout_session.dart';
 import '../services/export_service.dart';
 import 'exercise_home_screen.dart';
 import 'history_hub_screen.dart';
+import '../widgets/watch_hub_action_face.dart';
 
 class SessionHubScreen extends StatelessWidget {
   final LogRepository repository;
   final ExportService exportService;
 
-  const SessionHubScreen({
-    super.key,
-    required this.repository,
-    required this.exportService,
-  });
-
-  static const _uuid = Uuid();
+  const SessionHubScreen({super.key, required this.repository, required this.exportService});
 
   @override
   Widget build(BuildContext context) {
@@ -32,9 +25,7 @@ class SessionHubScreen extends StatelessWidget {
                 body: Center(
                   child: Text(
                     'Gym Log',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white24,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white24),
                   ),
                 ),
               );
@@ -47,101 +38,70 @@ class SessionHubScreen extends StatelessWidget {
   }
 
   Widget _active(BuildContext context, WearShape shape) {
-    final horizontal = shape == WearShape.round ? 20.0 : 16.0;
     final theme = Theme.of(context);
     final onPrimary = theme.colorScheme.onPrimary;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gym Log'),
-      ),
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(horizontal, 10, horizontal, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 20,
-                  ),
-                ),
-                onPressed: () => _startNewSession(context),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.add_circle_rounded,
-                      size: 44,
-                      color: onPrimary,
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'New session',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: onPrimary,
-                        height: 1.15,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.tonal(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(double.infinity, 56),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              onPressed: () => _openHistory(context),
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: WatchHubActionFace(
+          shape: shape,
+          onNewSession: () => _openExerciseList(context),
+          onHistory: () => _openHistory(context),
+          newSessionContent: Align(
+            alignment: const Alignment(0, -0.19),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.history_rounded,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 10),
+                  Icon(Icons.add_circle_rounded, size: 34, color: onPrimary),
+                  const SizedBox(width: 8),
                   Text(
-                    'History',
+                    'Log exercise',
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
+                      color: onPrimary,
+                      height: 1.15,
+                      fontSize: 17,
                     ),
                   ),
                 ],
               ),
             ),
-          ],
+          ),
+          historyContent: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 28),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'History',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.0,
+                    color: Colors.white,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _startNewSession(BuildContext context) async {
-    final session = WorkoutSession(
-      id: _uuid.v4(),
-      startedAt: DateTime.now().toUtc(),
-    );
-    if (!context.mounted) return;
+  Future<void> _openExerciseList(BuildContext context) async {
+    if (!context.mounted) {
+      return;
+    }
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (context) => ExerciseHomeScreen(
-          session: session,
-          repository: repository,
-        ),
+        builder: (context) => ExerciseHomeScreen(repository: repository),
       ),
     );
   }
@@ -149,10 +109,8 @@ class SessionHubScreen extends StatelessWidget {
   void _openHistory(BuildContext context) {
     Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (context) => HistoryHubScreen(
-          repository: repository,
-          exportService: exportService,
-        ),
+        builder: (context) =>
+            HistoryHubScreen(repository: repository, exportService: exportService),
       ),
     );
   }

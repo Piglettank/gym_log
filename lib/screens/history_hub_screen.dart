@@ -45,29 +45,31 @@ class HistoryHubScreen extends StatelessWidget {
   Widget _active(BuildContext context, WearShape shape) {
     final horizontal = shape == WearShape.round ? 20.0 : 16.0;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('History'),
-      ),
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            FilledButton(
-              onPressed: () => _openLogHistory(context),
-              child: const Text('Log history'),
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 24),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton(
+                  onPressed: () => _openLogHistory(context),
+                  child: const Text('Log history'),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.tonal(
+                  onPressed: () => _openExerciseHistory(context),
+                  child: const Text('Exercise history'),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.tonal(
+                  onPressed: () => _showExportSheet(context),
+                  child: const Text('Export'),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            FilledButton.tonal(
-              onPressed: () => _openExerciseHistory(context),
-              child: const Text('Exercise history'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.tonal(
-              onPressed: () => _showExportSheet(context),
-              child: const Text('Export'),
-            ),
-          ],
+          ),
         ),
       ),
     );

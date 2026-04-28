@@ -9,19 +9,15 @@ import 'exercise_progress_screen.dart';
 class ExerciseHistoryListScreen extends StatefulWidget {
   final LogRepository repository;
 
-  const ExerciseHistoryListScreen({
-    super.key,
-    required this.repository,
-  });
+  const ExerciseHistoryListScreen({super.key, required this.repository});
 
   @override
-  State<ExerciseHistoryListScreen> createState() =>
-      _ExerciseHistoryListScreenState();
+  State<ExerciseHistoryListScreen> createState() => _ExerciseHistoryListScreenState();
 }
 
 class _ExerciseHistoryListScreenState extends State<ExerciseHistoryListScreen> {
-  Map<String, int> _counts = {};
-  bool _loading = true;
+  List<ExerciseDefinition> _orderedExercises = List<ExerciseDefinition>.from(kExerciseCatalog);
+  Map<String, int> _logCounts = {};
 
   @override
   void initState() {
@@ -41,9 +37,7 @@ class _ExerciseHistoryListScreenState extends State<ExerciseHistoryListScreen> {
                 body: Center(
                   child: Text(
                     'Exercises',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white24,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white24),
                   ),
                 ),
               );
@@ -58,59 +52,73 @@ class _ExerciseHistoryListScreenState extends State<ExerciseHistoryListScreen> {
   Widget _active(BuildContext context, WearShape shape) {
     final horizontal = shape == WearShape.round ? 20.0 : 12.0;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Exercise history'),
-      ),
-      body: ListView.builder(
-        padding: EdgeInsets.fromLTRB(horizontal, 8, horizontal, 24),
-        itemCount: kExerciseCatalog.length,
-        itemBuilder: (context, index) {
-          final exercise = kExerciseCatalog[index];
-          final count = _counts[exercise.id] ?? 0;
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: InkWell(
-              onTap: () => _openExercise(exercise),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 14,
+      body: SafeArea(
+        child: ListView.builder(
+          padding: EdgeInsets.fromLTRB(horizontal, 16, horizontal, 24),
+          itemCount: 1 + _orderedExercises.length,
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    'Exercise history',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Text(
-                      exercise.emoji,
-                      style: const TextStyle(fontSize: 28),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            exercise.name,
-                            style: Theme.of(context).textTheme.titleSmall,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (!_loading)
+              );
+            }
+            final exercise = _orderedExercises[index - 1];
+            final theme = Theme.of(context);
+            final n = _logCounts[exercise.id] ?? 0;
+            final subtitle = n == 0
+                ? 'No logs'
+                : n == 1
+                ? '1 log'
+                : '$n logs';
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                onTap: () => _openExercise(exercise),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(exercise.emoji, style: const TextStyle(fontSize: 28)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             Text(
-                              '$count ${count == 1 ? 'log' : 'logs'}',
-                              style: Theme.of(context).textTheme.labelSmall,
+                              exercise.name,
+                              style: theme.textTheme.titleSmall,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                        ],
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -123,18 +131,16 @@ class _ExerciseHistoryListScreenState extends State<ExerciseHistoryListScreen> {
     }
     if (!mounted) return;
     setState(() {
-      _counts = counts;
-      _loading = false;
+      _logCounts = counts;
+      _orderedExercises = exercisesSortedByLogCountDesc(counts);
     });
   }
 
   Future<void> _openExercise(ExerciseDefinition exercise) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (context) => ExerciseProgressScreen(
-          repository: widget.repository,
-          exercise: exercise,
-        ),
+        builder: (context) =>
+            ExerciseProgressScreen(repository: widget.repository, exercise: exercise),
       ),
     );
     await _load();
