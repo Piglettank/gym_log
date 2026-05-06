@@ -63,6 +63,12 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
     final best = _entryWithBestPrimary(all, widget.definition);
     setState(() {
       _personalBestEntry = best;
+      if (widget.existingEntry == null && best != null) {
+        final bestWeight = best.values['weightKg'];
+        if (bestWeight != null && _values.containsKey('weightKg')) {
+          _values['weightKg'] = bestWeight;
+        }
+      }
     });
   }
 

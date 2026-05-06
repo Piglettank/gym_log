@@ -10,7 +10,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 1, initial: 15),
     ],
   ),
   ExerciseDefinition(
@@ -29,7 +29,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 1, initial: 40),
     ],
   ),
   ExerciseDefinition(
@@ -39,7 +39,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 1, initial: 40),
     ],
   ),
   ExerciseDefinition(
@@ -49,7 +49,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 1, initial: 10),
     ],
   ),
   ExerciseDefinition(
@@ -66,15 +66,13 @@ const List<ExerciseDefinition> kExerciseCatalog = [
     name: 'Challenge',
     emoji: '👥',
     fields: [
-      LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
-      LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
+      LogField(id: 'durationMin', label: 'Time', unit: 'min', decimals: 0, step: 1, initial: 60),
     ],
   ),
   ExerciseDefinition(
     id: 'plank',
     name: 'Plank',
-    emoji: '⏱️',
+    emoji: '🪵',
     fields: [
       LogField(id: 'durationSec', label: 'Hold', unit: 'sec', decimals: 0, step: 5, initial: 30),
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
@@ -83,7 +81,7 @@ const List<ExerciseDefinition> kExerciseCatalog = [
   ExerciseDefinition(
     id: 'side_plank',
     name: 'Side plank',
-    emoji: '🤸',
+    emoji: '🪵',
     fields: [
       LogField(id: 'durationSec', label: 'Hold', unit: 'sec', decimals: 0, step: 5, initial: 30),
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
@@ -92,11 +90,11 @@ const List<ExerciseDefinition> kExerciseCatalog = [
   ExerciseDefinition(
     id: 'back_lifts',
     name: 'Back lifts',
-    emoji: '🦴',
+    emoji: '✈️',
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 1, initial: 10),
     ],
   ),
   ExerciseDefinition(
@@ -111,11 +109,29 @@ const List<ExerciseDefinition> kExerciseCatalog = [
   ExerciseDefinition(
     id: 'dips',
     name: 'Dips',
-    emoji: '💪',
+    emoji: '🧗',
     fields: [
       LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
       LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
-      LogField(id: 'weightKg', label: 'Added', unit: 'kg', decimals: 1, step: 2.5, initial: 0),
+    ],
+  ),
+  ExerciseDefinition(
+    id: 'ez_chin',
+    name: 'EZ chin',
+    emoji: '🧗',
+    fields: [
+      LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
+      LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
+    ],
+  ),
+  ExerciseDefinition(
+    id: 'leg_press',
+    name: 'Leg press',
+    emoji: '🦵',
+    fields: [
+      LogField(id: 'sets', label: 'Sets', decimals: 0, step: 1, initial: 1),
+      LogField(id: 'reps', label: 'Reps', decimals: 0, step: 1, initial: 8),
+      LogField(id: 'weightKg', label: 'Weight', unit: 'kg', decimals: 1, step: 1, initial: 60),
     ],
   ),
 ];

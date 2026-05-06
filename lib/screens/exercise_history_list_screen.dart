@@ -4,6 +4,7 @@ import 'package:wear_plus/wear_plus.dart';
 import '../data/exercise_catalog.dart';
 import '../data/log_repository.dart';
 import '../models/exercise_definition.dart';
+import '../widgets/ambient_clock.dart';
 import 'exercise_progress_screen.dart';
 
 class ExerciseHistoryListScreen extends StatefulWidget {
@@ -32,15 +33,7 @@ class _ExerciseHistoryListScreenState extends State<ExerciseHistoryListScreen> {
         return AmbientMode(
           builder: (context, mode, _) {
             if (mode == WearMode.ambient) {
-              return Scaffold(
-                backgroundColor: Colors.black,
-                body: Center(
-                  child: Text(
-                    'Exercises',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white24),
-                  ),
-                ),
-              );
+              return const AmbientClock();
             }
             return _active(context, shape);
           },
@@ -59,7 +52,7 @@ class _ExerciseHistoryListScreenState extends State<ExerciseHistoryListScreen> {
           itemBuilder: (context, index) {
             if (index == 0) {
               return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.only(top: 2, bottom: 12),
                 child: SizedBox(
                   width: double.infinity,
                   child: Text(

@@ -1,12 +1,15 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'data/log_repository.dart';
+import 'firebase_options.dart';
 import 'screens/session_hub_screen.dart';
-import 'services/export_service.dart';
+import 'services/sync_service.dart';
 import 'widgets/wear_screen_preview.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const GymLogApp());
 }
 
@@ -14,7 +17,7 @@ class GymLogApp extends StatelessWidget {
   const GymLogApp({super.key});
 
   static final _repository = LogRepository();
-  static final _exportService = ExportService();
+  static final _syncService = SyncService();
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +39,7 @@ class GymLogApp extends StatelessWidget {
       },
       home: SessionHubScreen(
         repository: _repository,
-        exportService: _exportService,
+        syncService: _syncService,
       ),
     );
   }

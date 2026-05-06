@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:wear_plus/wear_plus.dart';
 
 import '../data/log_repository.dart';
-import '../services/export_service.dart';
+import '../services/sync_service.dart';
+import '../widgets/ambient_clock.dart';
 import 'exercise_history_list_screen.dart';
 import 'history_screen.dart';
+import 'sync_screen.dart';
 
 class HistoryHubScreen extends StatelessWidget {
   final LogRepository repository;
-  final ExportService exportService;
+  final SyncService syncService;
 
   const HistoryHubScreen({
     super.key,
     required this.repository,
-    required this.exportService,
+    required this.syncService,
   });
 
   @override
@@ -23,17 +25,7 @@ class HistoryHubScreen extends StatelessWidget {
         return AmbientMode(
           builder: (context, mode, _) {
             if (mode == WearMode.ambient) {
-              return Scaffold(
-                backgroundColor: Colors.black,
-                body: Center(
-                  child: Text(
-                    'History',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white24,
-                        ),
-                  ),
-                ),
-              );
+              return const AmbientClock();
             }
             return _active(context, shape);
           },
@@ -43,62 +35,70 @@ class HistoryHubScreen extends StatelessWidget {
   }
 
   Widget _active(BuildContext context, WearShape shape) {
-    final horizontal = shape == WearShape.round ? 20.0 : 16.0;
+    final horizontal = shape == WearShape.round ? 20.0 : 12.0;
+    final items = <_MenuItem>[
+      _MenuItem(icon: Icons.history_rounded, label: 'Log history', onTap: () => _openLogHistory(context)),
+      _MenuItem(icon: Icons.fitness_center_rounded, label: 'Exercise history', onTap: () => _openExerciseHistory(context)),
+      _MenuItem(icon: Icons.sync_rounded, label: 'Sync data', onTap: () => _openSync(context)),
+    ];
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 24),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FilledButton(
-                  onPressed: () => _openLogHistory(context),
-                  child: const Text('Log history'),
+        child: ListView.builder(
+          padding: EdgeInsets.fromLTRB(horizontal, 8, horizontal, 24),
+          itemCount: 1 + items.length,
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 2, bottom: 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    'Menu',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                FilledButton.tonal(
-                  onPressed: () => _openExerciseHistory(context),
-                  child: const Text('Exercise history'),
+              );
+            }
+            final item = items[index - 1];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                onTap: item.onTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  child: Row(
+                    children: [
+                      Icon(item.icon, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          item.label,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                FilledButton.tonal(
-                  onPressed: () => _showExportSheet(context),
-                  child: const Text('Export'),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Future<void> _showExportSheet(BuildContext context) async {
-    final format = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: const Text('Export JSON'),
-                onTap: () => Navigator.pop(sheetContext, 'json'),
-              ),
-              ListTile(
-                title: const Text('Export CSV'),
-                onTap: () => Navigator.pop(sheetContext, 'csv'),
-              ),
-            ],
-          ),
-        );
-      },
+  void _openSync(BuildContext context) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => SyncScreen(
+          repository: repository,
+          syncService: syncService,
+        ),
+      ),
     );
-    if (format == null || !context.mounted) return;
-    await exportService.exportFullData(context, repository, format);
   }
 
   void _openLogHistory(BuildContext context) {
@@ -120,4 +120,12 @@ class HistoryHubScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MenuItem {
+  const _MenuItem({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 }

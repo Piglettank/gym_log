@@ -7,6 +7,7 @@ import '../models/exercise_definition.dart';
 import '../models/workout_log_entry.dart';
 import '../util/log_entry_format.dart';
 import '../util/session_format.dart';
+import '../widgets/ambient_clock.dart';
 import 'log_exercise_screen.dart';
 
 class HistoryDayScreen extends StatefulWidget {
@@ -40,17 +41,7 @@ class _HistoryDayScreenState extends State<HistoryDayScreen> {
         return AmbientMode(
           builder: (context, mode, _) {
             if (mode == WearMode.ambient) {
-              return Scaffold(
-                backgroundColor: Colors.black,
-                body: Center(
-                  child: Text(
-                    'Log history',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white24,
-                        ),
-                  ),
-                ),
-              );
+              return const AmbientClock();
             }
             return _active(context, shape);
           },

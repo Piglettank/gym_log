@@ -118,4 +118,8 @@ class LogRepository {
     }
     await _saveEntries(s);
   }
+
+  Future<void> replaceAllEntries(List<WorkoutLogEntry> entries) async {
+    await _saveEntries(entries);
+  }
 }

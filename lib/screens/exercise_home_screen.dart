@@ -4,6 +4,7 @@ import 'package:wear_plus/wear_plus.dart';
 import '../data/exercise_catalog.dart';
 import '../data/log_repository.dart';
 import '../models/exercise_definition.dart';
+import '../widgets/ambient_clock.dart';
 import 'log_exercise_screen.dart';
 
 class ExerciseHomeScreen extends StatefulWidget {
@@ -34,17 +35,7 @@ class _ExerciseHomeScreenState extends State<ExerciseHomeScreen> {
         return AmbientMode(
           builder: (context, mode, _) {
             if (mode == WearMode.ambient) {
-              return Scaffold(
-                backgroundColor: Colors.black,
-                body: Center(
-                  child: Text(
-                    'Gym Log',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white24,
-                        ),
-                  ),
-                ),
-              );
+              return const AmbientClock();
             }
             return _activeScaffold(context, shape);
           },
@@ -59,9 +50,24 @@ class _ExerciseHomeScreenState extends State<ExerciseHomeScreen> {
       body: SafeArea(
         child: ListView.builder(
           padding: EdgeInsets.fromLTRB(horizontal, 8, horizontal, 24),
-          itemCount: _orderedExercises.length,
+          itemCount: 1 + _orderedExercises.length,
           itemBuilder: (context, index) {
-            final exercise = _orderedExercises[index];
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 2, bottom: 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    'Exercises',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              );
+            }
+            final exercise = _orderedExercises[index - 1];
             return _ExerciseTile(
               exercise: exercise,
               onTap: () => _openLog(exercise),
